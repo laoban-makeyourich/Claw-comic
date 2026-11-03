@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 
 import requests
 
+from .adblock import filter_ad_images
+
 
 def download_images(
     images: list[str],
@@ -17,6 +19,8 @@ def download_images(
     referer: str | None = None,
     delay: float = 0.5,
 ) -> list[str]:
+    # Safety net: never download an ad image even if a caller passes one in.
+    images = filter_ad_images(list(images))
     sess = session or requests.Session()
     sess.headers.setdefault("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
     if referer:
