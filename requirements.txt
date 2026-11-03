@@ -1,0 +1,7 @@
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=4.9
+# Optional, only for JS-rendered / lazy-load pages:
+# playwright>=1.40
+# Optional, only for --split-long:
+# Pillow>=10.0
