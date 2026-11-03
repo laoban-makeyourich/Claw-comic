@@ -6,6 +6,34 @@ Hệ thống cào truyện theo link, hỗ trợ 3 dạng layout phổ biến:
 2. **Chuyển từng trang (paginated)** — mỗi lần chỉ có 1–2 ảnh, phải bấm Next / sang trang mới để lấy tiếp.
 3. **Một khung chứa nhiều trang (single container)** — toàn bộ ảnh của chương nằm trong một khung reader duy nhất (ví dụ chế độ "all pages"), hoặc một ảnh dài chứa nhiều trang xếp chồng lên nhau (xem `--split-long`).
 
+## Cơ chế handoff khi gặp captcha (mới)
+
+Khi hệ thống không pass được captcha / tường bot, nó **không tự vượt**:
+
+1. Dừng lại, in cảnh báo và ghi `handoff.json` với trạng thái `awaiting_user`.
+2. Kiểm tra danh sách tab đang mở (`--tabs-file tabs.json`, dạng `[{"window":..., "title":..., "url":...}]`). Chỉ khi có một tab chứa **đúng URL chương cần scan** (bỏ qua tham số tracking như `utm_*`, `serviceZone`) thì handoff mới được phép tới tab đó. Không khớp → báo rõ "chưa tìm thấy tab khớp, mở đúng URL trước, đừng mở tab trùng".
+3. Người dùng tự tick captcha trong đúng tab đó, chờ Success, **không tải lại, không đóng tab, không mở tab trùng**.
+4. Scan tiếp bằng 1 trong 2 cách, không dùng cookie/token của trình duyệt người dùng:
+   - Cách chắc chắn: lưu trang đã pass thành file HTML rồi chạy `--html-file <file>`. Vì pass captcha trong trình duyệt của bạn không tự mở khóa session riêng của tool.
+   - Cách thử lại: `--resume-from handoff.json` — tool fetch lại đúng 1 lần, nếu vẫn bị chặn thì dừng tiếp, không lặp.
+
+```bash
+# Gặp bot wall, có danh sách tab đang mở:
+python -m claw_comic.cli "https://example.com/chapter-1" --metadata-only --handoff --tabs-file tabs.json --out out/chapter-1
+# Sau khi bạn tự pass captcha trong tab đã khớp, lưu trang rồi:
+python -m claw_comic.cli "https://example.com/chapter-1" --metadata-only --html-file saved-chapter.html
+```
+
+## Chặn quảng cáo (mới)
+
+Ảnh quảng cáo không bao giờ lọt vào danh sách ảnh truyện, qua 3 lớp:
+
+- Host quảng cáo: doubleclick, googlesyndication, popads, adcash, propellerads, taboola, outbrain, mgid... (xem `claw_comic/adblock.py`).
+- Đường dẫn quảng cáo: `/ads/`, `ad-banner`, `popunder`, `sponsored`, tracking pixel.
+- Khung quảng cáo: ảnh nằm trong div có id/class `ads`, `advertisement`, `sponsored`, `popunder`, hoặc link bao ngoài trỏ tới host quảng cáo.
+
+Lớp này chạy ở cả trích xuất (`extract.py`), tải ảnh (`download.py` — lưới an toàn cuối) và chế độ trình duyệt (`browser.py` — chặn luôn request tới host quảng cáo khi render).
+
 ## Nguyên tắc chống bot — và giới hạn
 
 Claw-comic chỉ dùng các cách hợp lệ, giống một trình duyệt thật đang đọc chậm:
