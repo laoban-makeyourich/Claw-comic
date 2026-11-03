@@ -1,4 +1,36 @@
-# Báo cáo QA + scan thử — 2026-11-03
+# Báo cáo QA + scan thử — 2026-11-03 (cập nhật: handoff + chặn quảng cáo)
+
+## Cập nhật mới: handoff captcha + chặn quảng cáo
+
+QA mới: `python -m unittest discover -s tests` → **12/12 pass**
+(5 test cũ + 7 test mới cho handoff và adblock).
+
+### Handoff, test thật với Comic Book Plus bị 403
+
+- Tab khớp (`dlid=15452` đang mở): tool in cảnh báo, ghi
+  `handoff.json` với `status: awaiting_user` và đúng tab đó
+  (`[Comic] Racket Squad in Action 4`), không mở tab mới, không
+  tải lại, không đọc cookie/token.
+- Tab không khớp (chỉ có `dlid=99999` và xkcd): tool báo rõ
+  "no open tab matches", `matching_tab: null`, vẫn ghi handoff
+  và yêu cầu mở đúng URL trước, đừng mở tab trùng.
+- Resume bằng file HTML đã lưu sau khi tự pass: trích xuất đúng
+  2 ảnh truyện, ảnh quảng cáo doubleclick bị lọc.
+- Resume bằng `--resume-from handoff.json` (fetch lại 1 lần):
+  vẫn `bot_wall HTTP 403` — đúng như dự kiến, vì pass captcha
+  trong trình duyệt của người dùng không mở khóa session riêng
+  của tool. Vì vậy đường resume đáng tin là `--html-file`.
+
+### Chặn quảng cáo, test bằng fixture
+
+Ảnh từ doubleclick, đường dẫn `/ads/`, ảnh trong khung
+`ads-container`, ảnh bao bởi link tới popads đều bị loại;
+chỉ còn ảnh truyện thật (p1, p2). Lớp lọc chạy ở trích xuất,
+tải ảnh và render trình duyệt.
+
+---
+
+# Báo cáo QA + scan thử — 2026-11-03 (bản đầu)
 
 Chế độ scan: `--metadata-only` — chỉ lấy tiêu đề / số ảnh / layout / trạng thái bot,
 **không tải ảnh**. Các link dưới đây đều là nội dung đọc miễn phí hợp pháp
