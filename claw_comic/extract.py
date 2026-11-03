@@ -25,6 +25,8 @@ from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
+from .adblock import is_ad
+
 IMAGE_EXT = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif")
 BAD_SUBSTRINGS = (
     "logo", "avatar", "banner", "ads/", "/ad-", "advert",
@@ -44,6 +46,10 @@ def _is_image_url(url: str) -> bool:
 
 
 def _is_bad(url: str, tag) -> bool:
+    # Ad blocking first: ad hosts / ad containers never enter the list,
+    # even if their filename looks like a normal image.
+    if is_ad(url, tag):
+        return True
     low = url.lower()
     if any(b in low for b in BAD_SUBSTRINGS):
         return True
