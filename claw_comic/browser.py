@@ -8,10 +8,11 @@ caller receives bot_wall and must stop.
 
 from __future__ import annotations
 
+from .adblock import is_ad_host
 from .fetcher import detect_bot_wall
 
 
-def render_html(url: str, *, scroll_steps: int = 10, timeout_ms: int = 30000) -> tuple[str, bool, str]:
+def render_html(url: str, *, scroll_steps: int = 10, timeout_ms: int = 30000, block_ads: bool = True) -> tuple[str, bool, str]:
     """Return (html, bot_wall, evidence). Raises if Playwright is missing."""
     try:
         from playwright.sync_api import sync_playwright
@@ -24,6 +25,15 @@ def render_html(url: str, *, scroll_steps: int = 10, timeout_ms: int = 30000) ->
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
             viewport={"width": 1280, "height": 900},
         )
+        if block_ads:
+            def _route(route):
+                # Abort network requests to ad hosts while rendering,
+                # so ad images/scripts never load into the page.
+                if is_ad_host(route.request.url):
+                    route.abort()
+                else:
+                    route.continue_()
+            page.route("**/*", _route)
         try:
             page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
             page.wait_for_timeout(1500)
